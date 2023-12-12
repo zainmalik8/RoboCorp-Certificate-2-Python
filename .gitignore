@@ -17,3 +17,5 @@ testrun/*
 *.pkl
 
 orders.csv
+
+__pycache__/
