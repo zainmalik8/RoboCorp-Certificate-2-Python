@@ -3,6 +3,7 @@
 from workflow.project import Process
 
 from config import Directories
+from logger import logger
 
 
 def task():
@@ -18,4 +19,6 @@ def task():
 
 
 if __name__ == "__main__":
+    logger.warning("Starting Robo-corp certificate-2")
     task()
+    logger.warning("Robo-corp certificate-2 is completed.")

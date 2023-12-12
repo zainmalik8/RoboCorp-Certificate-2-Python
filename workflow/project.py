@@ -13,10 +13,12 @@ from retry import retry
 
 from config import Directories
 from workflow.mappers import XpathMapper
+from logger import logger
 
 
 class Process(XpathMapper):
     def __init__(self):
+        logger.info("Initializing the process.")
 
         self.browser = Selenium()
         self.http, self.table, self.pdf = HTTP(), Tables(), PDF()
@@ -26,14 +28,17 @@ class Process(XpathMapper):
         self.downloading_path, self.screenshot_path = Directories.output_path, Directories.screenshot_directory
 
     def open_browser(self):
+        logger.info("opening the browser.")
         self.browser.open_available_browser("https://robotsparebinindustries.com/#/robot-order", maximized=True)
 
     @retry(tries=3, delay=1)
     def handle_pop_up(self):
+        logger.info("handling the pop-up.")
         self.browser.wait_until_page_contains_element(self.pop_up_btn, timeout=timedelta(seconds=15))
         self.browser.click_button_when_visible(self.pop_up_btn)
 
     def download_orders_csv(self):
+        logger.info("downloading the orders csv.....")
         self.http.download("https://robotsparebinindustries.com/orders.csv", overwrite=False,
                            target_file=self.csv_path)
 
@@ -49,10 +54,11 @@ class Process(XpathMapper):
         except AssertionError:
             return
 
-    def orders(self):
+    def orders_processing(self):
+        logger.info("started processing the orders.")
         orders_data = self.table.read_table_from_csv(path=self.csv_path, header=True)
         for order in orders_data:
-            print(order)
+            logger.info(order)
             self.browser.wait_until_page_contains_element(self.head_locator, timeout=timedelta(seconds=10))
             self.browser.select_from_list_by_value(self.head_locator, order['Head'])
             """
@@ -84,11 +90,13 @@ class Process(XpathMapper):
             self.handle_pop_up()
 
     def start(self):
+        logger.info("Process is started.")
         self.open_browser()
         self.handle_pop_up()
         self.download_orders_csv()
-        self.orders()
+        self.orders_processing()
 
     def finish(self):
         """Release resources."""
         self.browser.close_browser()
+        logger.info("Process has finished.")
