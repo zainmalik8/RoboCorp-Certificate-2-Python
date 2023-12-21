@@ -8,24 +8,26 @@ from datetime import timedelta
 from RPA.Browser.Selenium import Selenium
 from RPA.HTTP import HTTP
 from RPA.PDF import PDF
-from RPA.Tables import Tables
+from RPA.Tables import Tables, Table
 from retry import retry
 
 from config import Directories
-from workflow.mappers import XpathMapper
 from logger import logger
+from workflow.mappers import XpathMapper
 
 
 class Process(XpathMapper):
     def __init__(self):
         logger.info("Initializing the process.")
 
-        self.browser = Selenium()
+        self.browser: Selenium = Selenium()
         self.http, self.table, self.pdf = HTTP(), Tables(), PDF()
 
         self.csv_path = Directories.orders_path
         self.pdf_path, self.receipt_directory = Directories.pdf_directory, Directories.receipt_directory
         self.downloading_path, self.screenshot_path = Directories.output_path, Directories.screenshot_directory
+
+        self.orders_data, self.processed_orders = Table(), 0
 
     def open_browser(self):
         logger.info("opening the browser.")
@@ -36,6 +38,7 @@ class Process(XpathMapper):
         logger.info("handling the pop-up.")
         self.browser.wait_until_page_contains_element(self.pop_up_btn, timeout=timedelta(seconds=15))
         self.browser.click_button_when_visible(self.pop_up_btn)
+        return True
 
     def download_orders_csv(self):
         logger.info("downloading the orders csv.....")
@@ -56,8 +59,8 @@ class Process(XpathMapper):
 
     def orders_processing(self):
         logger.info("started processing the orders.")
-        orders_data = self.table.read_table_from_csv(path=self.csv_path, header=True)
-        for order in orders_data:
+        self.orders_data = self.table.read_table_from_csv(path=self.csv_path, header=True)
+        for order in self.orders_data:
             logger.info(order)
             self.browser.wait_until_page_contains_element(self.head_locator, timeout=timedelta(seconds=10))
             self.browser.select_from_list_by_value(self.head_locator, order['Head'])
@@ -85,6 +88,7 @@ class Process(XpathMapper):
             self.pdf.add_watermark_image_to_pdf(image_path=f"{self.screenshot_path}/{order['Order number']}.png",
                                                 source_path=f"{self.pdf_path}/{order['Order number']}.pdf",
                                                 output_path=f"{self.receipt_directory}/{order['Order number']}.pdf")
+            self.processed_orders += 1
             # another order
             self.browser.click_button_when_visible(locator=self.another_btn)
             self.handle_pop_up()

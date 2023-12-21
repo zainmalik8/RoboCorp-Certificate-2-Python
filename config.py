@@ -2,8 +2,6 @@ import os
 import shutil
 from pathlib import Path
 
-from dataclasses import dataclass, asdict
-
 
 class Directories:
     base_directory = Path().cwd()
